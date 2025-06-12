@@ -1,0 +1,27 @@
+{
+  "name": "hzm-backend-veri-tabani",
+  "version": "1.0.0",
+  "description": "Dinamik tablo yönetimi ve API Key bazlı yetkilendirme ile Backend-as-a-Service sistemi",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "dev": "nodemon index.js",
+    "init-db": "node scripts/initDatabase.js"
+  },
+  "keywords": ["backend", "database", "api", "nodejs", "postgresql"],
+  "author": "Özgür Altıntaş",
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.18.2",
+    "pg": "^8.11.3",
+    "cors": "^2.8.5",
+    "dotenv": "^16.3.1",
+    "bcryptjs": "^2.4.3",
+    "uuid": "^9.0.1",
+    "helmet": "^7.1.0",
+    "express-rate-limit": "^7.1.5"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.2"
+  }
+} 
