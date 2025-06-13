@@ -3,10 +3,10 @@ const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
-const pool = require('./config/database');
+const { Pool } = require('pg');
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 8080;
 
 // Middleware
 app.use(helmet());
@@ -25,14 +25,9 @@ app.use('/api/', limiter);
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
 
-// Database bağlantısını test et
-pool.connect((err, client, done) => {
-  if (err) {
-    console.error('❌ PostgreSQL bağlantı hatası:', err.message);
-  } else {
-    console.log('✅ PostgreSQL veritabanına başarıyla bağlandı');
-    done();
-  }
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  ssl: { rejectUnauthorized: false },
 });
 
 // Routes
