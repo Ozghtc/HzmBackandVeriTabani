@@ -67,10 +67,12 @@ app.get('/health', async (req, res) => {
 const projectRoutes = require('./routes/projects');
 const tableRoutes = require('./routes/tables');
 const dataRoutes = require('./routes/data');
+const usersRoutes = require('./routes/users');
 
 app.use('/api/projects', projectRoutes);
 app.use('/api/tables', tableRoutes);
 app.use('/api/data', dataRoutes);
+app.use('/api/users', usersRoutes);
 
 // Error handling middleware
 app.use((err, req, res, next) => {
