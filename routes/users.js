@@ -7,7 +7,7 @@ const router = express.Router();
 // Tüm kullanıcıları listele
 router.get('/', authenticateApiKey, async (req, res) => {
   try {
-    const result = await pool.query('SELECT id, name, email, role FROM users ORDER BY id ASC');
+    const result = await pool.query('SELECT id, name, email, role, selected_package FROM users ORDER BY id ASC');
     res.json(result.rows);
   } catch (error) {
     console.error('Kullanıcıları listeleme hatası:', error);
@@ -19,12 +19,14 @@ router.get('/', authenticateApiKey, async (req, res) => {
 router.post('/', authenticateApiKey, async (req, res) => {
   try {
     const { name, email, password, role } = req.body;
+    // Hem camelCase hem snake_case desteği
+    const selectedPackage = req.body.selectedPackage || req.body.selected_package || null;
     if (!name || !email || !password || !role) {
       return res.status(400).json({ error: 'Tüm alanlar zorunludur' });
     }
     const result = await pool.query(
-      'INSERT INTO users (name, email, password, role) VALUES ($1, $2, $3, $4) RETURNING id, name, email, role',
-      [name, email, password, role]
+      'INSERT INTO users (name, email, password, role, selected_package) VALUES ($1, $2, $3, $4, $5) RETURNING id, name, email, role, selected_package',
+      [name, email, password, role, selectedPackage]
     );
     res.status(201).json(result.rows[0]);
   } catch (error) {
@@ -52,10 +54,35 @@ router.delete('/:id', authenticateApiKey, async (req, res) => {
 router.put('/:id', authenticateApiKey, async (req, res) => {
   try {
     const { id } = req.params;
+    const selectedPackage = req.body.selectedPackage || req.body.selected_package || null;
     const { name, email, password, role } = req.body;
+
+    // Sadece fiyat/paket güncellemesi ise
+    if (selectedPackage && !name && !email && !password && !role) {
+      const result = await pool.query(
+        'UPDATE users SET selected_package = $1 WHERE id = $2 RETURNING id, name, email, role, selected_package',
+        [selectedPackage, id]
+      );
+      if (result.rows.length === 0) {
+        return res.status(404).json({ error: 'Kullanıcı bulunamadı' });
+      }
+      return res.json(result.rows[0]);
+    }
+
+    // Eğer password yoksa, mevcut şifreyi çek ve onu kullan
+    let finalPassword = password;
+    if (!password) {
+      const userResult = await pool.query('SELECT password FROM users WHERE id = $1', [id]);
+      if (userResult.rows.length === 0) {
+        return res.status(404).json({ error: 'Kullanıcı bulunamadı' });
+      }
+      finalPassword = userResult.rows[0].password;
+    }
+
+    // Diğer alanlar da varsa hepsini güncelle
     const result = await pool.query(
-      'UPDATE users SET name = $1, email = $2, password = $3, role = $4 WHERE id = $5 RETURNING id, name, email, role',
-      [name, email, password, role, id]
+      'UPDATE users SET name = $1, email = $2, password = $3, role = $4, selected_package = $5 WHERE id = $6 RETURNING id, name, email, role, selected_package',
+      [name, email, finalPassword, role, selectedPackage, id]
     );
     if (result.rows.length === 0) {
       return res.status(404).json({ error: 'Kullanıcı bulunamadı' });

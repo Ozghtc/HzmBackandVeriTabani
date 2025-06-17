@@ -4,7 +4,7 @@ const { Pool } = require('pg');
 // PostgreSQL bağlantısı (Cloud/DO uyumlu)
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
-  ssl: { rejectUnauthorized: false }
+  ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
 });
 
 async function initDatabase() {
