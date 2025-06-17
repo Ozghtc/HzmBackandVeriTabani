@@ -42,7 +42,7 @@ app.set('trust proxy', 1);
 
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
-  ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
+  ssl: (process.env.NODE_ENV && process.env.NODE_ENV.toLowerCase() === 'production') ? { rejectUnauthorized: false } : false,
 });
 
 // Routes
