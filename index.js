@@ -13,6 +13,11 @@ const allowedOrigins = process.env.ALLOWED_ORIGINS
   : [];
 
 // Middleware
+app.use((req, res, next) => {
+  console.log("🌐 Gelen origin:", req.headers.origin);
+  next();
+});
+
 app.use(helmet());
 app.use(cors({
   origin: function (origin, callback) {
