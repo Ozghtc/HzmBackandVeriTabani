@@ -35,13 +35,13 @@ app.get('/healthz', (req, res) => {
   res.json({ status: 'healthy', timestamp: new Date().toISOString() });
 });
 
-// Simple test endpoint
+// En basit route
 app.get('/', (req, res) => {
-  res.json({ message: 'Backend is working!', timestamp: new Date().toISOString() });
+  res.send('Hello World!');
 });
 
 app.get('/test', (req, res) => {
-  res.json({ message: 'Test endpoint is working!', timestamp: new Date().toISOString() });
+  res.send('Test route working!');
 });
 
 // Simple users endpoint without API key for testing
