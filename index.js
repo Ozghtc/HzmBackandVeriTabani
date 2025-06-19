@@ -15,9 +15,13 @@ const allowedOrigins = process.env.ALLOWED_ORIGINS
   ? process.env.ALLOWED_ORIGINS.split(',').map(origin => origin.trim())
   : [];
 
+console.log('🔒 Allowed Origins:', allowedOrigins);
+
 // ✅ CORS Options - daha detaylı
 const corsOptions = {
   origin: function (origin, callback) {
+    console.log('🌐 İstek origin:', origin);
+    
     // Geliştirme ortamında origin kontrolünü bypass et
     if (process.env.NODE_ENV === 'development') {
       return callback(null, true);
@@ -25,27 +29,32 @@ const corsOptions = {
     
     // Production'da sıkı kontrol
     if (!origin) {
+      console.log('⚠️ Origin yok');
       return callback(null, true); // API araçları için
     }
     
     if (allowedOrigins.includes(origin)) {
+      console.log('✅ Origin izin verilen listede');
       return callback(null, true);
     } else {
+      console.log('❌ Origin izin verilen listede değil');
       return callback(new Error(`CORS policy violation: ${origin} not allowed`), false);
     }
   },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'x-api-key'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-API-Key', 'x-api-key'],
   exposedHeaders: ['Content-Range', 'X-Content-Range'],
   maxAge: 600 // CORS preflight sonuçlarını 10 dakika önbelleğe al
 };
 
-// ✅ Origin loglama - daha detaylı
+// ✅ Origin ve header loglama - daha detaylı
 app.use((req, res, next) => {
-  console.log('🌐 Gelen origin:', req.headers.origin);
+  console.log('\n📡 Yeni İstek:');
+  console.log('🌐 Origin:', req.headers.origin);
   console.log('📍 IP:', req.ip);
-  console.log('🔑 API Key:', req.headers['x-api-key'] ? 'Mevcut' : 'Yok');
+  console.log('🔑 API Key:', req.headers['x-api-key']);
+  console.log('📨 Headers:', req.headers);
   next();
 });
 
