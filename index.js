@@ -2,7 +2,6 @@ require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const { Pool } = require('pg');
-const { authenticateApiKey } = require('./middleware/auth');
 
 const app = express();
 
@@ -20,9 +19,13 @@ const pool = new Pool({
   ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
 });
 
-// Test endpoint
+// Simple test endpoint
+app.get('/', (req, res) => {
+  res.json({ message: 'Backend is working!', timestamp: new Date().toISOString() });
+});
+
 app.get('/test', (req, res) => {
-  res.json({ message: 'Backend is working!' });
+  res.json({ message: 'Test endpoint is working!', timestamp: new Date().toISOString() });
 });
 
 // Log middleware for debugging
@@ -36,10 +39,7 @@ app.use((req, res, next) => {
   next();
 });
 
-// API Key authentication for /api routes
-app.use('/api', authenticateApiKey);
-
-// Users endpoints
+// Simple users endpoint without API key for testing
 app.get('/api/users', async (req, res) => {
   try {
     const result = await pool.query('SELECT * FROM users');
@@ -47,52 +47,6 @@ app.get('/api/users', async (req, res) => {
   } catch (error) {
     console.error('Kullanıcı listesi hatası:', error);
     res.status(500).json({ error: 'Veritabanı hatası' });
-  }
-});
-
-app.post('/api/users', async (req, res) => {
-  try {
-    const { name, email, role } = req.body;
-    const result = await pool.query(
-      'INSERT INTO users (name, email, role) VALUES ($1, $2, $3) RETURNING *',
-      [name, email, role]
-    );
-    res.status(201).json(result.rows[0]);
-  } catch (error) {
-    console.error('Kullanıcı ekleme hatası:', error);
-    res.status(500).json({ error: 'Veritabanı hatası' });
-  }
-});
-
-app.delete('/api/users/:id', async (req, res) => {
-  try {
-    const { id } = req.params;
-    const result = await pool.query('DELETE FROM users WHERE id = $1 RETURNING id', [id]);
-    if (result.rows.length === 0) {
-      return res.status(404).json({ error: 'Kullanıcı bulunamadı' });
-    }
-    res.json({ message: 'Kullanıcı silindi', id });
-  } catch (error) {
-    console.error('Kullanıcı silme hatası:', error);
-    res.status(500).json({ error: 'Kullanıcı silinemedi' });
-  }
-});
-
-app.put('/api/users/:id', async (req, res) => {
-  try {
-    const { id } = req.params;
-    const { name, email, role } = req.body;
-    const result = await pool.query(
-      'UPDATE users SET name = $1, email = $2, role = $3 WHERE id = $4 RETURNING *',
-      [name, email, role, id]
-    );
-    if (result.rows.length === 0) {
-      return res.status(404).json({ error: 'Kullanıcı bulunamadı' });
-    }
-    res.json(result.rows[0]);
-  } catch (error) {
-    console.error('Kullanıcı güncelleme hatası:', error);
-    res.status(500).json({ error: 'Kullanıcı güncellenemedi' });
   }
 });
 
