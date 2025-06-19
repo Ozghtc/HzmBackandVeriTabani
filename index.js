@@ -2,26 +2,30 @@ require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const { Pool } = require('pg');
+const { authenticateApiKey } = require('./middleware/auth');
 
 const app = express();
 
-// En basit CORS ayarları
+// Middleware
+app.use(express.json());
 app.use(cors({
-  origin: '*', // Tüm originlere izin ver
+  origin: '*',
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'x-api-key']
 }));
 
-// Body parser
-app.use(express.json());
-
-// PostgreSQL bağlantısı
+// Database connection
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
-  ssl: { rejectUnauthorized: false }
+  ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
 });
 
-// Request logger
+// Test endpoint
+app.get('/test', (req, res) => {
+  res.json({ message: 'Backend is working!' });
+});
+
+// Log middleware for debugging
 app.use((req, res, next) => {
   console.log('Yeni İstek:', {
     path: req.path,
@@ -32,10 +36,8 @@ app.use((req, res, next) => {
   next();
 });
 
-// Test endpoint
-app.get('/test', (req, res) => {
-  res.json({ message: 'API çalışıyor' });
-});
+// API Key authentication for /api routes
+app.use('/api', authenticateApiKey);
 
 // Users endpoints
 app.get('/api/users', async (req, res) => {
@@ -62,13 +64,38 @@ app.post('/api/users', async (req, res) => {
   }
 });
 
-// Error handler
-app.use((err, req, res, next) => {
-  console.error('Hata:', err);
-  res.status(500).json({ error: 'Sunucu hatası' });
+app.delete('/api/users/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const result = await pool.query('DELETE FROM users WHERE id = $1 RETURNING id', [id]);
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Kullanıcı bulunamadı' });
+    }
+    res.json({ message: 'Kullanıcı silindi', id });
+  } catch (error) {
+    console.error('Kullanıcı silme hatası:', error);
+    res.status(500).json({ error: 'Kullanıcı silinemedi' });
+  }
 });
 
-// Server'ı başlat
+app.put('/api/users/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { name, email, role } = req.body;
+    const result = await pool.query(
+      'UPDATE users SET name = $1, email = $2, role = $3 WHERE id = $4 RETURNING *',
+      [name, email, role, id]
+    );
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Kullanıcı bulunamadı' });
+    }
+    res.json(result.rows[0]);
+  } catch (error) {
+    console.error('Kullanıcı güncelleme hatası:', error);
+    res.status(500).json({ error: 'Kullanıcı güncellenemedi' });
+  }
+});
+
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`Server ${PORT} portunda çalışıyor`);
