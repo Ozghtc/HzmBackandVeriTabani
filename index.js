@@ -19,6 +19,11 @@ const pool = new Pool({
   ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
 });
 
+// Health check endpoint
+app.get('/healthz', (req, res) => {
+  res.json({ status: 'healthy', timestamp: new Date().toISOString() });
+});
+
 // Simple test endpoint
 app.get('/', (req, res) => {
   res.json({ message: 'Backend is working!', timestamp: new Date().toISOString() });
