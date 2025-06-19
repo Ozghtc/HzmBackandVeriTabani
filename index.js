@@ -10,186 +10,87 @@ const app = express();
 // ✅ Gelen IP ve Origin için doğru tanıma izin verir
 app.set('trust proxy', 1);
 
-// ✅ CORS ayarları - daha sıkı güvenlik
-const allowedOrigins = process.env.ALLOWED_ORIGINS
-  ? process.env.ALLOWED_ORIGINS.split(',').map(origin => origin.trim())
-  : [];
-
-console.log('🔒 Allowed Origins:', allowedOrigins);
-
-// ✅ CORS Options - daha detaylı
+// ✅ CORS ayarları - basitleştirilmiş
 const corsOptions = {
-  origin: function (origin, callback) {
-    console.log('🌐 İstek origin:', origin);
-    
-    // Geliştirme ortamında origin kontrolünü bypass et
-    if (process.env.NODE_ENV === 'development') {
-      return callback(null, true);
-    }
-    
-    // Production'da sıkı kontrol
-    if (!origin) {
-      console.log('⚠️ Origin yok');
-      return callback(null, true); // API araçları için
-    }
-    
-    if (allowedOrigins.includes(origin)) {
-      console.log('✅ Origin izin verilen listede');
-      return callback(null, true);
-    } else {
-      console.log('❌ Origin izin verilen listede değil');
-      return callback(new Error(`CORS policy violation: ${origin} not allowed`), false);
-    }
-  },
-  credentials: true,
+  origin: 'https://hzmveritabani.netlify.app',
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-API-Key', 'x-api-key'],
-  exposedHeaders: ['Content-Range', 'X-Content-Range'],
-  maxAge: 600 // CORS preflight sonuçlarını 10 dakika önbelleğe al
+  credentials: true
 };
 
-// ✅ Origin ve header loglama - daha detaylı
+// ✅ CORS middleware'ini uygula
+app.use(cors(corsOptions));
+
+// ✅ Helmet güvenlik ayarları
+app.use(helmet({
+  crossOriginResourcePolicy: { policy: "cross-origin" },
+  crossOriginOpenerPolicy: { policy: "unsafe-none" }
+}));
+
+// ✅ Request loglama
 app.use((req, res, next) => {
   console.log('\n📡 Yeni İstek:');
   console.log('🌐 Origin:', req.headers.origin);
   console.log('📍 IP:', req.ip);
   console.log('🔑 API Key:', req.headers['x-api-key']);
-  console.log('📨 Headers:', req.headers);
+  console.log('📨 Headers:', JSON.stringify(req.headers, null, 2));
   next();
 });
 
-// ✅ Güvenlik middleware'leri
-app.use(helmet());
-app.use(cors(corsOptions));
-app.options('*', cors(corsOptions)); // Preflight CORS fix
+// ✅ Body parser ayarları
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
-// ✅ Rate limiting - daha akıllı
+// ✅ Rate limiting
 const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 dakika
-  max: 100, // IP başına limit
-  message: {
-    error: 'Çok fazla istek',
-    message: 'Lütfen 15 dakika sonra tekrar deneyin'
-  },
-  standardHeaders: true, // RateLimit bilgisini header'a ekle
-  legacyHeaders: false
+  windowMs: 15 * 60 * 1000,
+  max: 100
 });
-
-// API rotalarına rate limit uygula
 app.use('/api/', limiter);
 
-// ✅ Body parser ayarları - daha güvenli
-app.use(express.json({ 
-  limit: '10mb',
-  verify: (req, res, buf) => {
-    try {
-      JSON.parse(buf);
-    } catch(e) {
-      res.status(400).json({ error: 'Invalid JSON' });
-      throw new Error('Invalid JSON');
-    }
-  }
-}));
-app.use(express.urlencoded({ extended: true, limit: '10mb' }));
-
-// ✅ PostgreSQL bağlantısı - daha dayanıklı
+// ✅ PostgreSQL bağlantısı
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
-  ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
-  max: 20, // maksimum bağlantı sayısı
-  idleTimeoutMillis: 30000, // boşta kalma timeout
-  connectionTimeoutMillis: 2000, // bağlantı timeout
+  ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
 });
 
-// Veritabanı bağlantı durumunu kontrol et
-pool.on('connect', () => {
-  console.log('✅ PostgreSQL bağlantısı başarılı');
-});
-
-pool.on('error', (err) => {
-  console.error('❌ PostgreSQL hatası:', err.message);
-});
-
-// ✅ Ana endpoint - daha bilgilendirici
+// ✅ Ana endpoint
 app.get('/', (req, res) => {
   res.json({
     message: 'HZM Backend Veri Tabanı API',
     version: '1.0.0',
-    status: 'running',
-    environment: process.env.NODE_ENV || 'development',
-    timestamp: new Date().toISOString()
+    status: 'running'
   });
 });
 
-// ✅ Health check - daha detaylı
+// ✅ Health check
 app.get('/health', async (req, res) => {
   try {
-    const start = Date.now();
     await pool.query('SELECT 1');
-    const dbResponseTime = Date.now() - start;
-    
-    res.json({
-      status: 'healthy',
-      database: {
-        status: 'connected',
-        responseTime: `${dbResponseTime}ms`
-      },
-      server: {
-        uptime: process.uptime(),
-        memory: process.memoryUsage()
-      },
-      timestamp: new Date().toISOString()
-    });
+    res.json({ status: 'healthy' });
   } catch (error) {
-    res.status(500).json({
-      status: 'unhealthy',
-      database: {
-        status: 'disconnected',
-        error: error.message
-      },
-      timestamp: new Date().toISOString()
-    });
+    res.status(500).json({ status: 'unhealthy', error: error.message });
   }
 });
 
 // ✅ API rotaları
-const projectRoutes = require('./routes/projects');
-const tableRoutes = require('./routes/tables');
-const dataRoutes = require('./routes/data');
 const usersRoutes = require('./routes/users');
-
-app.use('/api/projects', projectRoutes);
-app.use('/api/tables', tableRoutes);
-app.use('/api/data', dataRoutes);
 app.use('/api/users', usersRoutes);
 
-// ✅ Hata yönetimi - daha detaylı
-app.use((err, req, res, next) => {
-  console.error('❌ Hata:', err.stack);
-  
-  // CORS hatası özel mesajı
-  if (err.message.includes('CORS')) {
-    return res.status(403).json({
-      error: 'CORS hatası',
-      message: err.message,
-      origin: req.headers.origin
-    });
-  }
-  
-  res.status(500).json({
-    error: 'Sunucu hatası',
-    message: process.env.NODE_ENV === 'development' ? err.message : 'Bir şeyler yanlış gitti',
-    requestId: req.id // İsteği takip için
-  });
-});
-
-// ✅ 404 handler - daha bilgilendirici
+// ✅ 404 handler
 app.use('*', (req, res) => {
   res.status(404).json({
     error: 'Endpoint bulunamadı',
-    path: req.originalUrl,
-    method: req.method,
-    timestamp: new Date().toISOString()
+    path: req.originalUrl
+  });
+});
+
+// ✅ Error handler
+app.use((err, req, res, next) => {
+  console.error('❌ Hata:', err);
+  res.status(500).json({
+    error: 'Sunucu hatası',
+    message: process.env.NODE_ENV === 'development' ? err.message : 'Bir şeyler yanlış gitti'
   });
 });
 
@@ -199,7 +100,7 @@ app.listen(PORT, () => {
   console.log(`🚀 HZM Backend Veri Tabanı sunucusu http://localhost:${PORT} adresinde çalışıyor`);
   console.log(`📊 Health check: http://localhost:${PORT}/health`);
   console.log(`🔒 Güvenli modda: ${process.env.NODE_ENV === 'production' ? 'Evet' : 'Hayır'}`);
-  console.log(`🌐 İzin verilen originler: ${allowedOrigins.join(', ')}`);
+  console.log(`🌐 İzin verilen origin: https://hzmveritabani.netlify.app`);
 });
 
 // ✅ Graceful shutdown - daha güvenli
