@@ -13,6 +13,17 @@ app.use(cors({
   allowedHeaders: ['Content-Type', 'x-api-key']
 }));
 
+// Log middleware for debugging
+app.use((req, res, next) => {
+  console.log('Yeni İstek:', {
+    path: req.path,
+    method: req.method,
+    origin: req.headers.origin,
+    apiKey: req.headers['x-api-key']
+  });
+  next();
+});
+
 // Database connection
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
@@ -31,17 +42,6 @@ app.get('/', (req, res) => {
 
 app.get('/test', (req, res) => {
   res.json({ message: 'Test endpoint is working!', timestamp: new Date().toISOString() });
-});
-
-// Log middleware for debugging
-app.use((req, res, next) => {
-  console.log('Yeni İstek:', {
-    path: req.path,
-    method: req.method,
-    origin: req.headers.origin,
-    apiKey: req.headers['x-api-key']
-  });
-  next();
 });
 
 // Simple users endpoint without API key for testing
