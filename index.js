@@ -11,7 +11,7 @@ const app = express();
 app.use(express.json());
 
 const allowedOrigins = [
-  'https://hzmveritabani.netlify.app',
+  'https://hzmfrontendveritabani.netlify.app',
   'https://main--hzmveritabani.netlify.app',
   'http://localhost:5173'
 ];
