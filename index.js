@@ -3,6 +3,8 @@ const express = require('express');
 const cors = require('cors');
 const { Pool } = require('pg');
 
+const internalDbUrl = "postgresql://postgres:QuYdBaYimhhZySgITuTAUuYPWGjLizVt@postgres.railway.internal:5432/railway";
+
 const app = express();
 
 // Middleware
@@ -37,28 +39,24 @@ app.use((req, res, next) => {
   next();
 });
 
-// Database connection
+// PostgreSQL connection pool (Cloud/DO uyumlu)
 const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
+  connectionString: process.env.DATABASE_URL || internalDbUrl,
+  ssl: { rejectUnauthorized: false }
+});
+
+// Test database connection
+pool.on('connect', () => {
+  console.log('✅ PostgreSQL veritabanına bağlandı');
+});
+
+pool.on('error', (err) => {
+  console.error('❌ PostgreSQL bağlantı hatası:', err.message);
 });
 
 // Health check endpoints
-app.get('/healthz', (req, res) => {
-  res.json({ status: 'healthy', timestamp: new Date().toISOString() });
-});
-
 app.get('/health', (req, res) => {
   res.json({ status: 'healthy', timestamp: new Date().toISOString() });
-});
-
-// En basit route
-app.get('/', (req, res) => {
-  res.send('Hello World!');
-});
-
-app.get('/test', (req, res) => {
-  res.send('Test route working!');
 });
 
 // Rotaları Yükle
@@ -71,19 +69,6 @@ app.use('/api/v1/projects', projectsRouter);
 app.use('/api/v1/tables', tablesRouter);
 app.use('/api/v1/data', dataRouter);
 app.use('/api/v1/users', usersRouter);
-
-// Simple users endpoint without API key for testing - ARTIK KULLANILMIYOR
-/*
-app.get('/api/users', async (req, res) => {
-  try {
-    const result = await pool.query('SELECT * FROM users');
-    res.json(result.rows);
-  } catch (error) {
-    console.error('Kullanıcı listesi hatası:', error);
-    res.status(500).json({ error: 'Veritabanı hatası' });
-  }
-});
-*/
 
 const PORT = process.env.PORT || 8080;
 app.listen(PORT, () => {
