@@ -74,7 +74,9 @@ app.get('/api/users', async (req, res) => {
 
 const PORT = process.env.PORT || 10000;
 app.listen(PORT, () => {
-  console.log(`Server ${PORT} portunda çalışıyor`);
-  console.log('CORS: Tüm originlere izin veriliyor');
-  console.log('Database URL:', process.env.DATABASE_URL);
+  console.log(`🚀 Server ${PORT} portunda çalışıyor`);
+  console.log('🔒 CORS: İzin verilen originler:', allowedOrigins);
+  console.log('📊 Health check endpoints: /health, /healthz');
+  console.log('🌐 Database URL:', process.env.DATABASE_URL);
+  console.log('✅ Render deployment için hazır!');
 }); 
