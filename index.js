@@ -11,7 +11,7 @@ app.use(express.json());
 const allowedOrigins = [
   'https://hzmveritabani.netlify.app',
   'https://main--hzmveritabani.netlify.app',
-  'http://localhost:5173' // Development için
+  'http://localhost:5173'
 ];
 
 app.use(cors({
@@ -85,11 +85,11 @@ app.get('/api/users', async (req, res) => {
 });
 */
 
-const PORT = process.env.PORT || 10000;
+const PORT = process.env.PORT || 8080;
 app.listen(PORT, () => {
   console.log(`🚀 Server ${PORT} portunda çalışıyor`);
   console.log('🔒 CORS: İzin verilen originler:', allowedOrigins);
   console.log('📊 Health check endpoints: /health, /healthz');
-  console.log('🌐 Database URL:', process.env.DATABASE_URL);
-  console.log('✅ Render deployment için hazır!');
+  console.log('🌐 Database URL:', process.env.DATABASE_URL ? 'Tanımlı' : 'Tanımlı Değil (undefined)');
+  console.log('✅ Deployment için hazır!');
 }); 
