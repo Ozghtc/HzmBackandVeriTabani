@@ -61,7 +61,19 @@ app.get('/test', (req, res) => {
   res.send('Test route working!');
 });
 
-// Simple users endpoint without API key for testing
+// Rotaları Yükle
+const projectsRouter = require('./routes/projects');
+const tablesRouter = require('./routes/tables');
+const dataRouter = require('./routes/data');
+const usersRouter = require('./routes/users');
+
+app.use('/api/v1/projects', projectsRouter);
+app.use('/api/v1/tables', tablesRouter);
+app.use('/api/v1/data', dataRouter);
+app.use('/api/v1/users', usersRouter);
+
+// Simple users endpoint without API key for testing - ARTIK KULLANILMIYOR
+/*
 app.get('/api/users', async (req, res) => {
   try {
     const result = await pool.query('SELECT * FROM users');
@@ -71,6 +83,7 @@ app.get('/api/users', async (req, res) => {
     res.status(500).json({ error: 'Veritabanı hatası' });
   }
 });
+*/
 
 const PORT = process.env.PORT || 10000;
 app.listen(PORT, () => {
