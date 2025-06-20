@@ -45,12 +45,28 @@ async function initDatabase() {
     await pool.query(projectTablesTable);
     console.log('✅ project_tables tablosu oluşturuldu');
     
-    // 3. İndeksler oluştur
+    // 3. Users tablosu
+    const usersTable = `
+      CREATE TABLE IF NOT EXISTS users (
+        id SERIAL PRIMARY KEY,
+        name VARCHAR(255) NOT NULL,
+        email VARCHAR(255) UNIQUE NOT NULL,
+        password VARCHAR(255) NOT NULL,
+        role VARCHAR(50) DEFAULT 'user',
+        created_at TIMESTAMP DEFAULT NOW(),
+        updated_at TIMESTAMP DEFAULT NOW()
+      );
+    `;
+    await pool.query(usersTable);
+    console.log('✅ users tablosu oluşturuldu');
+    
+    // 4. İndeksler oluştur
     const indexes = [
       'CREATE INDEX IF NOT EXISTS idx_projects_api_key ON projects(api_key);',
       'CREATE INDEX IF NOT EXISTS idx_projects_active ON projects(is_active);',
       'CREATE INDEX IF NOT EXISTS idx_project_tables_project_id ON project_tables(project_id);',
-      'CREATE INDEX IF NOT EXISTS idx_project_tables_name ON project_tables(name);'
+      'CREATE INDEX IF NOT EXISTS idx_project_tables_name ON project_tables(name);',
+      'CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);'
     ];
     
     for (const index of indexes) {
@@ -58,7 +74,7 @@ async function initDatabase() {
     }
     console.log('✅ İndeksler oluşturuldu');
     
-    // 4. Test verisi ekle (opsiyonel)
+    // 5. Test verisi ekle (opsiyonel)
     const testProjectQuery = `
       INSERT INTO projects (name, description, api_key, created_at, updated_at)
       SELECT 'Test Projesi', 'Bu bir test projesidir', 'vt_test123demo456789', NOW(), NOW()
