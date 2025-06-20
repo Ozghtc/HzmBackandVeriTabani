@@ -1,9 +1,11 @@
 require('dotenv').config();
 const { Pool } = require('pg');
 
+const internalDbUrl = "postgresql://postgres:QuYdBaYimhhZySgITuTAUuYPWGjLizVt@postgres.railway.internal:5432/railway";
+
 // PostgreSQL connection pool (Cloud/DO uyumlu)
 const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
+  connectionString: process.env.DATABASE_URL || internalDbUrl,
   ssl: { rejectUnauthorized: false }
 });
 
