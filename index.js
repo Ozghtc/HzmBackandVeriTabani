@@ -3,8 +3,6 @@ const express = require('express');
 const cors = require('cors');
 const { Pool } = require('pg');
 
-const internalDbUrl = "postgresql://postgres:QuYdBaYimhhZySgITuTAUuYPWGjLizVt@postgres.railway.internal:5432/railway";
-
 const app = express();
 
 // Middleware
@@ -30,36 +28,36 @@ app.use(cors({
 
 // Log middleware for debugging
 app.use((req, res, next) => {
-  console.log('Yeni İstek:', {
+  console.log('API Request Received:', {
     path: req.path,
     method: req.method,
-    origin: req.headers.origin,
-    apiKey: req.headers['x-api-key']
+    origin: req.headers.origin
   });
   next();
 });
 
-// PostgreSQL connection pool (Cloud/DO uyumlu)
+// PostgreSQL connection pool
+const dbUrl = process.env.DATABASE_URL;
 const pool = new Pool({
-  connectionString: process.env.DATABASE_URL || internalDbUrl,
+  connectionString: dbUrl,
   ssl: { rejectUnauthorized: false }
 });
 
 // Test database connection
 pool.on('connect', () => {
-  console.log('✅ PostgreSQL veritabanına bağlandı');
+  console.log('✅ PostgreSQL veritabanına başarıyla bağlandı.');
 });
 
 pool.on('error', (err) => {
-  console.error('❌ PostgreSQL bağlantı hatası:', err.message);
+  console.error('❌ PostgreSQL bağlantı hatası:', err.stack);
 });
 
-// Health check endpoints
+// Health check endpoint
 app.get('/health', (req, res) => {
-  res.json({ status: 'healthy', timestamp: new Date().toISOString() });
+  res.status(200).json({ status: 'healthy', timestamp: new Date().toISOString() });
 });
 
-// Rotaları Yükle
+// Load Routes
 const projectsRouter = require('./routes/projects');
 const tablesRouter = require('./routes/tables');
 const dataRouter = require('./routes/data');
@@ -72,9 +70,8 @@ app.use('/api/v1/users', usersRouter);
 
 const PORT = process.env.PORT || 8080;
 app.listen(PORT, () => {
-  console.log(`🚀 Server ${PORT} portunda çalışıyor`);
-  console.log('🔒 CORS: İzin verilen originler:', allowedOrigins);
-  console.log('📊 Health check endpoints: /health, /healthz');
-  console.log('🌐 Database URL:', process.env.DATABASE_URL ? 'Tanımlı' : 'Tanımlı Değil (undefined)');
-  console.log('✅ Deployment için hazır!');
+  console.log(`🚀 Server ${PORT} portunda çalışıyor.`);
+  console.log('🔒 CORS Origins:', allowedOrigins);
+  console.log('🌐 Database URL Status:', dbUrl ? 'Defined' : '!!! UNDEFINED !!!');
+  console.log('✅ Railway deployment için hazır!');
 }); 
