@@ -57,6 +57,11 @@ app.get('/health', (req, res) => {
   res.status(200).json({ status: 'healthy', timestamp: new Date().toISOString() });
 });
 
+// Root endpoint
+app.get('/', (req, res) => {
+  res.status(200).send('HzmBackendVeriTabani API is running.');
+});
+
 // Load Routes
 const projectsRouter = require('./routes/projects');
 const tablesRouter = require('./routes/tables');
